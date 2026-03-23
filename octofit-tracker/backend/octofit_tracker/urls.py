@@ -17,16 +17,37 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
+import os
 
 router = DefaultRouter()
+CODESPACE_NAME = os.environ.get('CODESPACE_NAME')
+if CODESPACE_NAME:
+    API_BASE = f'https://{CODESPACE_NAME}-8000.app.github.dev/api/'
+else:
+    API_BASE = '/api/'
 router.register(r'users', views.UserViewSet, basename='user')
 router.register(r'teams', views.TeamViewSet, basename='team')
 router.register(r'activities', views.ActivityViewSet, basename='activity')
 router.register(r'workouts', views.WorkoutViewSet, basename='workout')
 router.register(r'leaderboards', views.LeaderboardViewSet, basename='leaderboard')
+from rest_framework.response import Response
+from rest_framework.reverse import reverse
+from rest_framework.decorators import api_view
+
+@api_view(['GET'])
+def custom_api_root(request, format=None):
+    base = API_BASE if API_BASE.startswith('http') else request.build_absolute_uri('/api/')
+    return Response({
+        'users': f'{base}users/',
+        'teams': f'{base}teams/',
+        'activities': f'{base}activities/',
+        'workouts': f'{base}workouts/',
+        'leaderboards': f'{base}leaderboards/',
+    })
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', views.api_root, name='api-root'),
+    path('api/', custom_api_root, name='api-root'),
     path('api/', include(router.urls)),
-    path('', views.api_root),
+    path('', custom_api_root),
 ]
